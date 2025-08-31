@@ -47,8 +47,8 @@ jobs:
           composer-options: '--no-scripts'
           continue-on-error: 'false'           # set to 'true' to not fail the Pest step on failures
 
-# Note: In the current action implementation, only Composer respects working-directory.
-# Other commands (npm, artisan, pest) run from the repository root.
+# Note: Composer, Artisan, and Pest steps respect `working-directory`.
+# Node (npm install/build) is executed from the repository root. If your Node project is elsewhere, run npm in your workflow before this action or open an issue.
 ```
 
 ## Inputs

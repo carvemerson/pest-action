@@ -1,5 +1,5 @@
 name: 'Run Pest PHP'
-description: 'Run Pest PHP'
+description: 'Run Pest PHP for Laravel with Composer, Vite build, SQLite bootstrap, and Pest execution'
 author: 'Emerson Carvalho'
 
 inputs:
@@ -21,17 +21,12 @@ inputs:
     default: '18'
   pest-args:
     description: 'Extra arguments passed to Pest (e.g., --filter=MyTest)'
-    default: '--ci --parallel'
     required: false
+    default: ''
   continue-on-error:
-    description: 'Whether to continue on error'
+    description: 'Whether the Pest step should continue on error'
     required: false
     default: 'false'
-
-env:
-  APP_ENV: testing
-  DB_CONNECTION: sqlite
-  DB_DATABASE: database/database.sqlite
 
 runs:
   using: 'composite'
@@ -48,55 +43,71 @@ runs:
         tools: composer:v2
         coverage: xdebug
 
-    - name: Show PHP & Composer versions
+    - name: Show PHP and Composer versions
       shell: bash
       run: |
         php -v
-        composer --version
+        composer -V
 
-    - name: Install Composer dependencies (with cache)
+    - name: Install Composer dependencies (cached)
       uses: ramsey/composer-install@v3
       with:
         working-directory: ${{ inputs.working-directory }}
         composer-options: ${{ inputs.composer-options }}
-
-    - name: Show Pest version
-      shell: bash
-      run: vendor/bin/pest --version
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: 'npm'
+        cache-dependency-path: package-lock.json
 
-    - name: Install npm dependencies
-      shell: bash
-      run: npm ci
-
-    - name: Build assets
-      shell: bash
-      run: npm run build
-
-    - name: Prepare SQLite database & env
+    - name: Install Node dependencies
+      if: ${{ hashFiles('package.json') != '' }}
       shell: bash
       run: |
+        if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+    - name: Build assets (Vite)
+      if: ${{ hashFiles('package.json') != '' }}
+      shell: bash
+      run: |
+        if [ -f package.json ]; then npm run build --if-present; fi
+
+    - name: Prepare Laravel application (.env, key, sqlite)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -e
+        if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env; fi
+        php artisan key:generate --force --no-interaction || true
         mkdir -p database
-        touch database/database.sqlite
-        cp .env.example .env
-        php artisan key:generate --force
+        if [ ! -f database/database.sqlite ]; then touch database/database.sqlite; fi
 
     - name: Run migrations
       shell: bash
-      run: php artisan migrate --force
-
-    - name: Clear caches (prep)
-      shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
-        php artisan config:clear
-        php artisan cache:clear
+        php artisan migrate --force --no-interaction || true
 
-    - name: Run Pest tests
+    - name: Clear Laravel caches
       shell: bash
-      continue-on-error: ${{ inputs.continue-on-error }}
-      run: vendor/bin/pest ${{ inputs.pest-args }}
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        php artisan config:clear || true
+        php artisan cache:clear || true
+
+    - name: Show Pest version
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -x vendor/bin/pest ]; then vendor/bin/pest --version; else echo "Pest not found at vendor/bin/pest"; fi
+
+    - name: Run Pest
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      continue-on-error: ${{ inputs.continue-on-error == 'true' }}
+      run: |
+        vendor/bin/pest ${{ inputs.pest-args }}
+
+
