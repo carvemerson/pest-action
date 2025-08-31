@@ -68,51 +68,43 @@ runs:
         cache-dependency-path: package-lock.json
 
     - name: Install Node dependencies
-      if: ${{ hashFiles('package.json') != '' }}
       shell: bash
-      run: |
-        if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      run: npm ci
 
     - name: Build assets (Vite)
       if: ${{ hashFiles('package.json') != '' }}
       shell: bash
-      run: |
-        if [ -f package.json ]; then npm run build --if-present; fi
+      run: npm run build
 
     - name: Prepare Laravel application (.env, key, sqlite)
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
         set -e
-        if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env; fi
-        php artisan key:generate --force --no-interaction || true
-        mkdir -p database
-        if [ ! -f database/database.sqlite ]; then touch database/database.sqlite; fi
+        cp .env.example .env
+        php artisan key:generate --force --no-interaction
 
     - name: Run migrations
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: |
-        php artisan migrate --force --no-interaction || true
+      run: php artisan migrate --force --no-interaction
 
     - name: Clear Laravel caches
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        php artisan config:clear || true
-        php artisan cache:clear || true
+        php artisan config:clear
+        php artisan cache:clear
 
     - name: Show Pest version
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: |
-        if [ -x vendor/bin/pest ]; then vendor/bin/pest --version; else echo "Pest not found at vendor/bin/pest"; fi
+      run: vendor/bin/pest --version
 
     - name: Run Pest
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       continue-on-error: ${{ inputs.continue-on-error == 'true' }}
-      run: |
-        vendor/bin/pest ${{ inputs.pest-args }}
+      run: vendor/bin/pest ${{ inputs.pest-args }}
 
 
