@@ -44,6 +44,7 @@ runs:
         coverage: xdebug
 
     - name: Show PHP & Composer versions
+      shell: bash
       run: |
         php -v
         composer --version
@@ -55,6 +56,7 @@ runs:
         composer-options: ${{ inputs.composer-options }}
 
     - name: Show Pest version
+      shell: bash
       run: vendor/bin/pest --version
 
     - name: Setup Node.js
@@ -64,12 +66,15 @@ runs:
         cache: 'npm'
 
     - name: Install npm dependencies
+      shell: bash
       run: npm ci
 
     - name: Build assets
+      shell: bash
       run: npm run build
 
     - name: Prepare SQLite database & env
+      shell: bash
       run: |
         mkdir -p database
         touch database/database.sqlite
@@ -77,13 +82,16 @@ runs:
         php artisan key:generate --force
 
     - name: Run migrations
+      shell: bash
       run: php artisan migrate --force
 
     - name: Clear caches (prep)
+      shell: bash
       run: |
         php artisan config:clear
         php artisan cache:clear
 
     - name: Run Pest tests
+      shell: bash
       continue-on-error: ${{ inputs.continue-on-error }}
       run: vendor/bin/pest ${{ inputs.pest-args }}
