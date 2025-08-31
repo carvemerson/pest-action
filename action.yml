@@ -28,12 +28,13 @@ inputs:
     required: false
     default: 'false'
 
+env:
+  APP_ENV: testing
+  DB_CONNECTION: sqlite
+  DB_DATABASE: database/database.sqlite
+
 runs:
   using: 'composite'
-  env:
-    APP_ENV: testing
-    DB_CONNECTION: sqlite
-    DB_DATABASE: database/database.sqlite
   steps:
     - name: Checkout code
       uses: actions/checkout@v4
