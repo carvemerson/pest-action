@@ -28,11 +28,6 @@ inputs:
     required: false
     default: 'false'
 
-env:
-  APP_ENV: testing
-  DB_CONNECTION: sqlite
-  DB_DATABASE: database/database.sqlite
-
 runs:
   using: 'composite'
   steps:
@@ -82,6 +77,9 @@ runs:
       run: |
         set -e
         cp .env.example .env
+        sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
+        sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+        sed -i 's/^DB_DATABASE=.*/DB_DATABASE=database\/database.sqlite/' .env
         php artisan key:generate --force --no-interaction
 
     - name: Run migrations
